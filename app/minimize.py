@@ -3,14 +3,15 @@ import numpy as np
 from tensor import *
 
 if __name__ == "__main__":
-    x = Tensor(np.ones(10), requires_grad=True)
+    x = Tensor(np.ones(3), requires_grad=True)
 
-    n_epochs = 100; lr = 1e-1
+    n_epochs = 25; lr = 1e-1
     for i in range(n_epochs):
-        soq = tensor_sum(mul(x,x))
+        x.zero_grad()
+        
+        soq = (x * x).sum()
         soq.backward()
 
-        delta = mul(Tensor(lr), x.grad)
-        x = Tensor(x.data - delta.data, requires_grad=True)
+        x -= lr * x.grad
 
-        print(i, soq.data)
+        print(i, soq.data, x.data)
