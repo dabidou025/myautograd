@@ -28,7 +28,7 @@ if __name__ == "__main__":
             self.b2 = Parameter(1)
 
         def predict(self, inputs):
-            
+
             pred = inputs @ self.w1 + self.b1
             #print('pred', pred.shape)
             pred = Tanh(pred)
@@ -39,31 +39,39 @@ if __name__ == "__main__":
 
     model = Model()
     optimizer = SGD(lr=1e-5)
-    
-    n_epochs = 500; lr = 1e-4
+
+    n_epochs = 1000; lr = 1e-4
 
     start = time.time()
 
-    for i in range(n_epochs):
-        model.zero_grad()
+    batch_size = 100
+    for epoch in range(n_epochs):
+        loss_epoch = 0
+        for i in range(0, n_sample, batch_size):
+            model.zero_grad()
 
-        pred = model.predict(x)
-        err = y - pred
-        loss = (err * err).sum()
+            pred = model.predict(x[i:(i+batch_size),:])
+            err = y[i:(i+batch_size)] - pred
+            loss = (err * err).sum()
 
-        loss.backward()
+            loss_epoch += loss.data
 
-        model.w1 -= lr * model.w1.grad; model.b1 -= lr * model.b1.grad
-        model.w2 -= lr * model.w2.grad; model.b2 -= lr * model.b2.grad
-        #optimizer.step(model)
-        
-        if i % 10 == 0:
-            print(i, loss.data)
+            loss.backward()
+
+            model.w1.data -= lr * model.w1.grad.data
+            model.b1.data -= lr * model.b1.grad.data
+
+            model.w2.data -= lr * model.w2.grad.data
+            model.b2.data -= lr * model.b2.grad.data
+            #optimizer.step(model)
+
+        if epoch % 100 == 0:
+            print(epoch, loss_epoch)
 
     end = time.time()
     print(end - start)
 
-    #print(x.data[:,0].shape, x.data[:,1].shape, y.data[:,0].shape, pred.data[:,0].shape)
+    pred = model.predict(x)
 
     data_y = pd.DataFrame({"x0":x.data[:,0], "x1":x.data[:,1], "yval":y.data[:,0], "color":"greens"})
     data_pred = pd.DataFrame({"x0":x.data[:,0], "x1":x.data[:,1], "yval":pred.data[:,0], "color":"reds"})

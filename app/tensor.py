@@ -21,7 +21,7 @@ class Tensor:
     def __init__(self, data, requires_grad = False, depends_on = None):
         self.data = to_array(data)
         self.shape = self.data.shape
-        
+
         self.depends_on = depends_on or []
         self.requires_grad = requires_grad
 
