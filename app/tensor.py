@@ -63,30 +63,36 @@ class Tensor:
 
     def __sub__ (self, other):
         return sub(self, to_tensor(other))
-    
+
     def __rsub__ (self, other):
         return sub(to_tensor(other), self)
 
     def __mul__ (self, other):
         return mul(self, to_tensor(other))
-    
+
     def __rmul__ (self, other):
         return mul(to_tensor(other), self)
 
+    def __truediv__ (self, other):
+        return mul(self, to_tensor(1 / other))
+
     def __matmul__ (self, other):
         return matmul(self, to_tensor(other))
-        
+
     def __rmatmul__ (self, other):
         return matmul(to_tensor(other), self)
 
     def __iadd__ (self, other):
-        return self + other
+        return self + to_tensor(other)
 
     def __isub__ (self, other):
-        return self - other
+        return self - to_tensor(other)
 
     def __imul__ (self, other):
-        return self * other
+        return self * to_tensor(other)
+
+    def __itruediv__ (self, other):
+        return self * to_tensor(other)
 
     def __getitem__(self, idxs):
         return slice(self, idxs)
@@ -221,15 +227,15 @@ def matmul (t1, t2):
             #print("t1 ", grad.shape, t2.data.T.shape)
             grad = grad @ t2.data.T
             return grad
-        
+
         depends_on.append(Dependency(t1, grad_fn1))
-    
+
     if t2.requires_grad:
         def grad_fn2 (grad):
             #print("t2 ", grad.shape, t1.data.T.shape)
             grad = t1.data.T @ grad
             return grad
-        
+
         depends_on.append(Dependency(t2, grad_fn2))
 
     return Tensor(data, requires_grad, depends_on)
@@ -242,7 +248,23 @@ def ReLu (t):
     if requires_grad:
         def grad_fn (grad):
             return grad * (data > 0).astype("float")
-        
+
+        depends_on = [Dependency(t, grad_fn)]
+    else:
+        depends_on = []
+
+    return Tensor(data, requires_grad, depends_on)
+
+def Sigmoid (t):
+    def sigmoid (x):
+        return 1 / (1 + np.exp(-x))
+    data = sigmoid(t.data)
+    requires_grad = t.requires_grad
+
+    if requires_grad:
+        def grad_fn(grad):
+            return grad * (data * (1 - data))
+
         depends_on = [Dependency(t, grad_fn)]
     else:
         depends_on = []
@@ -263,7 +285,7 @@ def Tanh (t):
 
     return Tensor(data, requires_grad, depends_on)
 
-def slice(t, idxs):
+def slice (t, idxs):
     data = t.data[idxs]
     requires_grad = t.requires_grad
 
@@ -282,12 +304,13 @@ def slice(t, idxs):
 def squeeze (t, axis):
     data = np.squeeze(t.data, axis=axis)
     requires_grad = t.requires_grad
-    depends_on = []
 
     if requires_grad:
         def grad_fn(grad):
             return np.expand_dims(grad, axis=axis)
 
         depends_on = [Dependency(t, grad_fn)]
+    else:
+        depends_on = []
 
     return Tensor(data, requires_grad, depends_on)
