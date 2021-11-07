@@ -1,10 +1,9 @@
-from typing import Iterator
 import inspect
 
 from tensor import Tensor   
 
 class ModelClass:
-    def parameters(self) -> Iterator[Tensor]:
+    def parameters(self):
         for name, value in inspect.getmembers(self):
             if isinstance(value, Tensor):
                 yield value
